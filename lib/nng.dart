@@ -85,35 +85,38 @@ class NNGSocket implements Finalizable {
       check_err(ret);
   }
 
-  String recv() {
+  Uint8List recv() {
         Pointer<Pointer<Char>> buf = malloc.allocate<Pointer<Char>>(0);
         Pointer<Size> sz = malloc.allocate<Size>(0);
-        String string;
+        Uint8List bytes;
         try {
 
             int ret = n.nng_recv(sock_ptr.ref, buf.cast<Void>(), sz, NNG_FLAG_ALLOC);
             check_err(ret);
-            /*
             final data = buf.value.cast<Uint8>();
-            final dataList = Uint8List.fromList(data.asTypedList(sz.value));
-            string = String.fromCharCodes(dataList);
-            print("got $dataList $string");
-            */
-            string = buf.value.cast<Utf8>().toDartString();
+            bytes = Uint8List.fromList(data.asTypedList(sz.value));
+            //string = String.fromCharCodes(bytes);
+            //print("got $dataList $string");
+            //string = buf.value.cast<Utf8>().toDartString();
             n.nng_free(buf.value.cast<Void>(), sz.value);
         } finally {
             malloc.free(buf);
             malloc.free(sz);
         }
-        return string;
+        return bytes;
   }
 
 
-  void send(final String data) {
-    final fs = data.toNativeUtf8();
-    int ret = n.nng_send(sock_ptr.ref, fs.cast<Void>(), data.length, 0);
-    check_err(ret);
-    malloc.free(fs);
+  void send(final Uint8List data) {
+    var outBuf = malloc.allocate<Uint8>(data.length);
+    var outdata = outBuf.asTypedList(data.length);
+    outdata.setAll(0, data);
+    try {
+        int ret = n.nng_send(sock_ptr.ref, outBuf.cast<Void>(), data.length, 0);
+        check_err(ret);
+    } finally {
+        malloc.free(outBuf);
+    }
   }
 
   void close() {
