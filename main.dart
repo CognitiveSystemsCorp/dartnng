@@ -5,9 +5,23 @@ import 'dart:io';
 
 void main() async {
 
+    /*
+
     NNGSocket  socket = NNGSocket();
-    final url = "tcp://*:6969";
+    final url = 'tcp://*:6969';
     socket.pub0_open(url);
+
+    */*/
+
+    NNGSocket  socket = NNGSocket();
+    final url = "tcp://127.0.0.1:4270";
+    socket.sub0_open(url);
+    socket.set_subscribe("");
+
+    while (true) {
+        String s = socket.recv();
+        print("s $s");
+    }
 
     //socket.close();
 

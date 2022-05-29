@@ -1,6 +1,7 @@
 library dartnng;
 import 'bindings.dart';
 
+import 'dart:typed_data';
 import 'dart:io';
 import 'dart:ffi';
 import 'package:ffi/ffi.dart';
@@ -46,13 +47,11 @@ final NativeFinalizer _finalizer = NativeFinalizer(_n.addresses.nng_close_ptr.ca
 
 class NNGSocket implements Finalizable {
   late Pointer<nng_socket> sock_ptr;
-  late Pointer<nng_listener> listener_ptr;
   late nng n; 
   bool _closed = false;
   NNGSocket() {
     n = _n;
     sock_ptr = malloc.allocate<nng_socket>(0);
-    listener_ptr = malloc.allocate<nng_listener>(0);
 
      //_finalizer.attach(this, sock_ptr.cast<Void>(), detach: this);
      _finalizer.attach(this, sock_ptr.cast<Void>());
@@ -62,14 +61,57 @@ class NNGSocket implements Finalizable {
     int ret = n.nng_pub0_open(sock_ptr);
     check_err(ret);
     final urlNative = url.toNativeUtf8().cast<Char>();
-    ret = n.nng_listen(sock_ptr.ref, urlNative, listener_ptr, 0);
+    ret = n.nng_listen(sock_ptr.ref, urlNative, nullptr, 0);
     check_err(ret);
     malloc.free(urlNative);
   }
 
+  void sub0_open(final String url) {
+    int ret;
+    ret = n.nng_sub0_open(sock_ptr);
+    check_err(ret);
+    final urlNative = url.toNativeUtf8().cast<Char>();
+    ret = n.nng_dial(sock_ptr.ref, urlNative, nullptr, NNG_FLAG_NONBLOCK);
+    check_err(ret);
+    malloc.free(urlNative);
+  }
+
+  void set_subscribe(final String prefix) {
+      final prefixNative = prefix.toNativeUtf8().cast<Void>();
+      final subNative = NNG_OPT_SUB_SUBSCRIBE.toNativeUtf8().cast<Char>();
+      int ret = n.nng_setopt(sock_ptr.ref, subNative, prefixNative, 0);
+      malloc.free(prefixNative);
+      malloc.free(subNative);
+      check_err(ret);
+  }
+
+  String recv() {
+        Pointer<Pointer<Char>> buf = malloc.allocate<Pointer<Char>>(0);
+        Pointer<Size> sz = malloc.allocate<Size>(0);
+        String string;
+        try {
+
+            int ret = n.nng_recv(sock_ptr.ref, buf.cast<Void>(), sz, NNG_FLAG_ALLOC);
+            check_err(ret);
+            /*
+            final data = buf.value.cast<Uint8>();
+            final dataList = Uint8List.fromList(data.asTypedList(sz.value));
+            string = String.fromCharCodes(dataList);
+            print("got $dataList $string");
+            */
+            string = buf.value.cast<Utf8>().toDartString();
+            n.nng_free(buf.value.cast<Void>(), sz.value);
+        } finally {
+            malloc.free(buf);
+            malloc.free(sz);
+        }
+        return string;
+  }
+
+
   void send(final String data) {
     final fs = data.toNativeUtf8();
-    int ret = n.nng_send(sock_ptr.ref, fs.cast<Void>(), data.length + 1, 0);
+    int ret = n.nng_send(sock_ptr.ref, fs.cast<Void>(), data.length, 0);
     check_err(ret);
     malloc.free(fs);
   }
@@ -79,7 +121,6 @@ class NNGSocket implements Finalizable {
       int ret = n.nng_close(sock_ptr.ref);
       check_err(ret);
       malloc.free(sock_ptr);
-      malloc.free(listener_ptr);
       _closed = true;
       _finalizer.detach(this);
     }
