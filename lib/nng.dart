@@ -60,21 +60,35 @@ class NNGSocket implements Finalizable {
   void pub0_open(final String url) {
     int ret = n.nng_pub0_open(sock_ptr);
     check_err(ret);
+    _listen(url);
+  }
+
+  void sub0_open(final String url) {
+    int ret = n.nng_sub0_open(sock_ptr);
+    check_err(ret);
+    _dial(url);
+  }
+
+  void req0_open(final String url) {
+    int ret = n.nng_req0_open(sock_ptr);
+    check_err(ret);
+    _dial(url);
+  }
+
+  void _listen(final String url) {
     final urlNative = url.toNativeUtf8().cast<Char>();
-    ret = n.nng_listen(sock_ptr.ref, urlNative, nullptr, 0);
+    int ret = n.nng_listen(sock_ptr.ref, urlNative, nullptr, 0);
     check_err(ret);
     malloc.free(urlNative);
   }
 
-  void sub0_open(final String url) {
-    int ret;
-    ret = n.nng_sub0_open(sock_ptr);
-    check_err(ret);
+  void _dial(final String url) {
     final urlNative = url.toNativeUtf8().cast<Char>();
-    ret = n.nng_dial(sock_ptr.ref, urlNative, nullptr, NNG_FLAG_NONBLOCK);
+    int ret = n.nng_dial(sock_ptr.ref, urlNative, nullptr, NNG_FLAG_NONBLOCK);
     check_err(ret);
     malloc.free(urlNative);
   }
+
 
   void set_subscribe(final String prefix) {
       final prefixNative = prefix.toNativeUtf8().cast<Void>();
@@ -88,7 +102,7 @@ class NNGSocket implements Finalizable {
   Uint8List recv() {
         Pointer<Pointer<Char>> buf = malloc.allocate<Pointer<Char>>(0);
         Pointer<Size> sz = malloc.allocate<Size>(0);
-        Uint8List bytes;
+        Uint8List? bytes = null;
         try {
 
             int ret = n.nng_recv(sock_ptr.ref, buf.cast<Void>(), sz, NNG_FLAG_ALLOC);
@@ -105,6 +119,7 @@ class NNGSocket implements Finalizable {
         }
         return bytes;
   }
+
 
 
   void send(final Uint8List data) {
