@@ -99,6 +99,18 @@ class NNGSocket implements Finalizable {
       check_err(ret);
   }
 
+  void set_rcvtimeo(final int timeout_ms) {
+      final native = NNG_OPT_RECVTIMEO.toNativeUtf8().cast<Char>();
+      Pointer<Int32> t = malloc.allocate<Int32>(0);
+      t.value = timeout_ms;
+      int ret = n.nng_setopt(sock_ptr.ref, native, t.cast<Void>(), 4);
+      malloc.free(t);
+      malloc.free(native);
+      check_err(ret);
+  }
+
+
+
   Uint8List recv() {
         Pointer<Pointer<Char>> buf = malloc.allocate<Pointer<Char>>(0);
         Pointer<Size> sz = malloc.allocate<Size>(0);
@@ -148,8 +160,19 @@ class NNGSocket implements Finalizable {
         return;
     }
     String msg = n.nng_strerror(err).cast<Utf8>().toDartString();
-    throw NNGException(msg);
+    if (err == nng_errno_enum.NNG_ETIMEDOUT) {
+        throw NNGTimedoutException(msg);
+    }
+    else {
+        throw NNGException(msg);
+    }
   }
+}
+
+class NNGTimedoutException implements Exception {
+  final String msg;
+  NNGTimedoutException(this.msg);
+  String toString() => 'NNGTimedoutException : $msg';
 }
 
 class NNGException implements Exception {

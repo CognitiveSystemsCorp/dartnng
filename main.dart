@@ -11,10 +11,15 @@ rx(SendPort sendPort) async {
     final url = "tcp://127.0.0.1:4270";
     socket.sub0_open(url);
     socket.set_subscribe("");
+    socket.set_rcvtimeo(1000);
 
     while (true) {
+       try {
         var s = socket.recv();
         sendPort.send(s);
+        } on NNGTimedoutException {
+            continue;
+        }
     }
 }
 
