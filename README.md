@@ -1,4 +1,4 @@
-#  Dart Nanomsg NG (NNG) bindings
+#  Dart Nanomsg-NG (NNG) bindings
 
 
 -get Dependencies 
