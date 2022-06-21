@@ -3,16 +3,18 @@
 
 `dart pub get`
 
-- Run main test function
+- Run the main test function
 
 `dart main.dart`
 
 
 Prepare NNG sources
 
+We use 'dart' branch of NNG to add a socket-free function that is compatible with Native Finalizer in Dart
+
 ```
 cd ../
-git clone  git@git.cognitivesystems.com:zen/nng.git
+git clone git@github.com:CognitiveSystemsCorp/nng.git
 mkdir nng/build
 cd nng/build
 
